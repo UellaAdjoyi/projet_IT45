@@ -21,4 +21,16 @@ void free_matrix(double** matrix, int size);
 void free_node(TSPNode* node);
 void tsp_little(double** distance_matrix, int size);
 
+typedef struct {
+   TSPNode** nodes;
+   int size;
+   int capacity;
+} PriorityQueue;
+
+PriorityQueue* create_queue(int capacity);
+void push(PriorityQueue* pq, TSPNode* node);
+TSPNode* pop(PriorityQueue* pq);
+void free_queue(PriorityQueue* pq);
+
+
 #endif //LITTLE_H
