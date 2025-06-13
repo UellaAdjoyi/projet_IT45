@@ -10,115 +10,116 @@
 #define MAX_ITER 500
 
 int N;
-int D[MAX_N][MAX_N];
+int D[MAX_N][MAX_N];  // Matrice de distances
 
 int best_solution[MAX_N];
 int best_cost = INT_MAX;
 
 int tabu_matrix[MAX_N][MAX_N];
 
-// Lecture d’un fichier .tsp (matrice de distance)
-void read_tsp(const char *filename) {
+/// === Lecture de la matrice de distances depuis un fichier .tsp ===
+void charger_matrice(const char *filename) {
     FILE *file = fopen(filename, "r");
     if (!file) {
-        perror("Fichier introuvable");
-        exit(1);
+        perror("Erreur lors de l'ouverture du fichier");
+        exit(EXIT_FAILURE);
     }
+
     fscanf(file, "%d", &N);
     for (int i = 0; i < N; i++)
         for (int j = 0; j < N; j++)
             fscanf(file, "%d", &D[i][j]);
+
     fclose(file);
 }
 
-// Évalue le coût total d’un tour
-int compute_cost(int sol[MAX_N]) {
-    int cost = 0;
-    for (int i = 0; i < N - 1; i++) {
-        cost += D[sol[i]][sol[i + 1]];
-    }
-    cost += D[sol[N - 1]][sol[0]];
-    return cost;
+/// === Évaluation du coût total d'un cycle (solution) ===
+int evaluer_cout(int sol[MAX_N]) {
+    int cout = 0;
+    for (int i = 0; i < N - 1; i++)
+        cout += D[sol[i]][sol[i + 1]];
+    cout += D[sol[N - 1]][sol[0]];  // Retour au départ
+    return cout;
 }
 
-// Solution initiale gloutonne
-void greedy_solution(int sol[MAX_N]) {
-    bool visited[MAX_N] = {false};
+/// === Construction d'une solution initiale gloutonne ===
+void solution_gloutonne(int sol[MAX_N]) {
+    bool visite[MAX_N] = {false};
     sol[0] = 0;
-    visited[0] = true;
+    visite[0] = true;
 
     for (int k = 1; k < N; k++) {
-        int last = sol[k - 1];
-        int next = -1, min_dist = INT_MAX;
+        int dernier = sol[k - 1];
+        int suivant = -1;
+        int dist_min = INT_MAX;
+
         for (int i = 0; i < N; i++) {
-            if (!visited[i] && D[last][i] < min_dist) {
-                min_dist = D[last][i];
-                next = i;
+            if (!visite[i] && D[dernier][i] < dist_min) {
+                dist_min = D[dernier][i];
+                suivant = i;
             }
         }
-        sol[k] = next;
-        visited[next] = true;
+        sol[k] = suivant;
+        visite[suivant] = true;
     }
 }
 
-// Échange 2 villes (2-opt)
-void swap(int sol[MAX_N], int i, int j) {
+/// === Inverser une sous-séquence de villes (2-opt) ===
+void inversion_segment(int sol[MAX_N], int i, int j) {
     while (i < j) {
-        int temp = sol[i];
+        int tmp = sol[i];
         sol[i] = sol[j];
-        sol[j] = temp;
+        sol[j] = tmp;
         i++; j--;
     }
 }
 
-// Algorithme Tabou
-void tabu_search() {
-    int current[MAX_N], best_local[MAX_N];
-    greedy_solution(current);
-    memcpy(best_solution, current, sizeof(int) * N);
-    int current_cost = compute_cost(current);
-    best_cost = current_cost;
+/// === Algorithme de recherche tabou ===
+void recherche_tabou() {
+    int courant[MAX_N], voisin_opt[MAX_N];
+    solution_gloutonne(courant);
+    memcpy(best_solution, courant, sizeof(int) * N);
+    best_cost = evaluer_cout(courant);
 
     memset(tabu_matrix, 0, sizeof(tabu_matrix));
 
     for (int iter = 0; iter < MAX_ITER; iter++) {
-        int best_neighbor_cost = INT_MAX;
+        int meilleur_voisin_cout = INT_MAX;
         int move_i = -1, move_j = -1;
 
-        // Génération de voisinage 2-opt
         for (int i = 1; i < N - 1; i++) {
             for (int j = i + 1; j < N; j++) {
-                int neighbor[MAX_N];
-                memcpy(neighbor, current, sizeof(int) * N);
-                swap(neighbor, i, j);
-                int delta = compute_cost(neighbor);
+                int voisin[MAX_N];
+                memcpy(voisin, courant, sizeof(int) * N);
+                inversion_segment(voisin, i, j);
 
-                if ((tabu_matrix[current[i]][current[j]] == 0 || delta < best_cost) && delta < best_neighbor_cost) {
-                    best_neighbor_cost = delta;
+                int cout_voisin = evaluer_cout(voisin);
+
+                bool deplacement_tabou = tabu_matrix[courant[i]][courant[j]] > 0;
+                bool critere_aspiration = (cout_voisin < best_cost);
+
+                if ((!deplacement_tabou || critere_aspiration) && cout_voisin < meilleur_voisin_cout) {
+                    meilleur_voisin_cout = cout_voisin;
                     move_i = i;
                     move_j = j;
-                    memcpy(best_local, neighbor, sizeof(int) * N);
+                    memcpy(voisin_opt, voisin, sizeof(int) * N);
                 }
             }
         }
 
         if (move_i != -1) {
-            // Appliquer le meilleur voisin
-            memcpy(current, best_local, sizeof(int) * N);
-            current_cost = best_neighbor_cost;
+            memcpy(courant, voisin_opt, sizeof(int) * N);
 
-            // Mise à jour tabou
-            tabu_matrix[current[move_i]][current[move_j]] = TABU_TENURE;
-            tabu_matrix[current[move_j]][current[move_i]] = TABU_TENURE;
+            tabu_matrix[courant[move_i]][courant[move_j]] = TABU_TENURE;
+            tabu_matrix[courant[move_j]][courant[move_i]] = TABU_TENURE;
 
-            // Mise à jour meilleure solution globale
-            if (current_cost < best_cost) {
-                best_cost = current_cost;
-                memcpy(best_solution, current, sizeof(int) * N);
+            if (meilleur_voisin_cout < best_cost) {
+                best_cost = meilleur_voisin_cout;
+                memcpy(best_solution, courant, sizeof(int) * N);
             }
         }
 
-        // Décrémenter tous les tabous
+        // Décrément du temps tabou
         for (int i = 0; i < N; i++)
             for (int j = 0; j < N; j++)
                 if (tabu_matrix[i][j] > 0)
@@ -126,23 +127,27 @@ void tabu_search() {
     }
 }
 
+/// === Affichage de la meilleure solution trouvée ===
+void afficher_resultat() {
+    printf("Coût optimal trouvé (Tabou) : %d\n", best_cost);
+    printf("Chemin : ");
+    for (int i = 0; i < N; i++)
+        printf("%d -> ", best_solution[i]);
+    printf("%d\n", best_solution[0]);
+}
+
+/// === Point d'entrée du programme ===
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        printf("Utilisation : %s fichier.tsp\n", argv[0]);
-        return 1;
+        fprintf(stderr, "Utilisation : %s fichier.tsp\n", argv[0]);
+        return EXIT_FAILURE;
     }
 
-    srand(time(NULL));
-    read_tsp(argv[1]);
+    srand((unsigned int)time(NULL));
 
-    tabu_search();
+    charger_matrice(argv[1]);
+    recherche_tabou();
+    afficher_resultat();
 
-    printf("Coût optimal trouvé (tabou) : %d\n", best_cost);
-    printf("Chemin : ");
-    for (int i = 0; i < N; i++) {
-        printf("%d -> ", best_solution[i]);
-    }
-    printf("%d\n", best_solution[0]);
-
-    return 0;
+    return EXIT_SUCCESS;
 }
