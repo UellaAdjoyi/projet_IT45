@@ -158,7 +158,7 @@ void recherche_tabou() {
             }
         }
 
-        // Décrément du temps tabou
+        // Décrémentation du temps tabou
         for (int i = 0; i < N; i++)
             for (int j = 0; j < N; j++)
                 if (tabu_matrix[i][j] > 0)
@@ -175,18 +175,3 @@ void afficher_resultat() {
     printf("%d\n", best_solution[0]);
 }
 
-/// === Point d'entrée du programme ===
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        fprintf(stderr, "Utilisation : %s fichier.tsp\n", argv[0]);
-        return EXIT_FAILURE;
-    }
-
-    srand((unsigned int)time(NULL));
-
-    charger_matrice(argv[1]);
-    recherche_tabou();
-    afficher_resultat();
-
-    return EXIT_SUCCESS;
-}
