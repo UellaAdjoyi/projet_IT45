@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <time.h>
+#include <math.h>
 
 #define MAX_N 100
 #define TABU_TENURE 10
@@ -25,13 +26,51 @@ void charger_matrice(const char *filename) {
         exit(EXIT_FAILURE);
     }
 
-    fscanf(file, "%d", &N);
-    for (int i = 0; i < N; i++)
-        for (int j = 0; j < N; j++)
-            fscanf(file, "%d", &D[i][j]);
+    char line[256];
+    double coords[MAX_N][2];  // Coordonnées (x, y) pour chaque ville
+
+    // 1. Lire jusqu'à DIMENSION
+    while (fgets(line, sizeof(line), file)) {
+        if (sscanf(line, "DIMENSION : %d", &N) == 1) {
+            break;
+        }
+    }
+
+    // 2. Lire jusqu'à NODE_COORD_SECTION
+    while (fgets(line, sizeof(line), file)) {
+        if (strncmp(line, "NODE_COORD_SECTION", 18) == 0) {
+            break;
+        }
+    }
+
+    // 3. Lire les coordonnées
+    for (int i = 0; i < N; i++) {
+        int index;
+        double x, y;
+        if (fscanf(file, "%d %lf %lf", &index, &x, &y) != 3) {
+            fprintf(stderr, "Erreur de lecture des coordonnées à la ligne %d\n", i + 1);
+            exit(EXIT_FAILURE);
+        }
+        coords[i][0] = x;
+        coords[i][1] = y;
+    }
 
     fclose(file);
+
+    // 4. Calculer la matrice des distances
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            if (i == j)
+                D[i][j] = 0;
+            else {
+                double dx = coords[i][0] - coords[j][0];
+                double dy = coords[i][1] - coords[j][1];
+                D[i][j] = (int)(sqrt(dx * dx + dy * dy) + 0.5);  // arrondi à l'entier le plus proche
+            }
+        }
+    }
 }
+
 
 /// === Évaluation du coût total d'un cycle (solution) ===
 int evaluer_cout(int sol[MAX_N]) {
