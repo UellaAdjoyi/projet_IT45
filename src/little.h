@@ -10,6 +10,8 @@ typedef struct {
     int path[MAX_CITIES];
     int path_len;
 } Node;
+extern double best_cost;
+extern int best_path[MAX_CITIES];
 
 typedef struct {
     int from;

@@ -1,9 +1,6 @@
-//
-// Created by Uella Adjoyi on 13/06/2025.
-//
-
 #ifndef GENETIC_H
 #define GENETIC_H
+
 #define MAX_POP 100
 #define MAX_GEN 500
 #define MUTATION_RATE 5
@@ -12,8 +9,8 @@
 extern int N;
 
 typedef struct {
-    int tour[MAX_N];  // séquence des villes
-    int cost;         // coût total
+    int tour[MAX_N];
+    int cost;
 } Individus;
 
 extern Individus population[MAX_POP];

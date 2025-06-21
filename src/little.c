@@ -5,8 +5,8 @@
 #include "little.h"
 #include "utils.h"
 
-static double best_cost = INFINITY;
-static int best_path[MAX_CITIES];
+double best_cost = INFINITY;
+int best_path[MAX_CITIES];
 
 void copy_matrix(double dest[MAX_CITIES][MAX_CITIES], double src[MAX_CITIES][MAX_CITIES], int size) {
     for (int i = 0; i < size; i++)
